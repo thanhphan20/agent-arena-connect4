@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Move, BoardState } from "../types/connect4";
 import { z } from "zod";
 
@@ -12,6 +13,8 @@ const moveDecisionSchema = z.object({
 export class AIService {
   private openai: OpenAI;
   private anthropic: Anthropic;
+  private gemini: GoogleGenerativeAI;
+  private groq: OpenAI;
 
   constructor() {
     this.openai = new OpenAI({
@@ -20,6 +23,13 @@ export class AIService {
 
     this.anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    
+    this.groq = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: "https://api.groq.com/openai/v1",
     });
   }
 
@@ -37,7 +47,11 @@ export class AIService {
       
       let response: string;
       
-      if (this.isAnthropicModel(playerModel)) {
+      if (this.isGeminiModel(playerModel)) {
+        response = await this.callGemini(prompt, playerModel, playerColor, boardState, boardHistory);
+      } else if (this.isGroqModel(playerModel)) {
+        response = await this.callGroq(prompt, playerModel, playerColor, boardState, boardHistory);
+      } else if (this.isAnthropicModel(playerModel)) {
         response = await this.callAnthropic(prompt, playerModel, playerColor, boardState, boardHistory);
       } else {
         response = await this.callOpenAI(prompt, playerModel, playerColor, boardState, boardHistory);
@@ -61,6 +75,15 @@ export class AIService {
 
   private isAnthropicModel(modelName: string): boolean {
     return modelName.toLowerCase().includes('claude');
+  }
+
+  private isGeminiModel(modelName: string): boolean {
+    return modelName.toLowerCase().includes('gemini');
+  }
+
+  private isGroqModel(modelName: string): boolean {
+    const lower = modelName.toLowerCase();
+    return lower.includes('llama') || lower.includes('mixtral') || lower.includes('qwen') || lower.includes('groq/');
   }
 
   private createConnect4Prompt(playerColor: string): string {
@@ -144,6 +167,37 @@ Based on the current board state and move history, what is the best column (1-7)
     });
 
     return completion.content[0]?.type === 'text' ? completion.content[0].text : "";
+  }
+
+  private async callGemini(prompt: string, playerModel: string, playerColor: string, boardState: BoardState, boardHistory?: Array<{ board: string[][]; moveNumber: number; player: string; column: number }>): Promise<string> {
+    console.log(`🤖 Asking Gemini for move decision using model: ${playerModel}`);
+    
+    const input = this.createConnect4Input(playerColor, boardState, boardHistory);
+    const model = this.gemini.getGenerativeModel({ model: playerModel });
+    
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: `${prompt}\n\n${input}` }] }],
+    });
+    
+    const response = await result.response;
+    return response.text();
+  }
+
+  private async callGroq(prompt: string, playerModel: string, playerColor: string, boardState: BoardState, boardHistory?: Array<{ board: string[][]; moveNumber: number; player: string; column: number }>): Promise<string> {
+    console.log(`🤖 Asking Groq for move decision using model: ${playerModel}`);
+    
+    const input = this.createConnect4Input(playerColor, boardState, boardHistory);
+    
+    const completion = await this.groq.chat.completions.create({
+      model: playerModel,
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: input },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    return completion.choices[0].message.content || "";
   }
 
   private parseAIResponse(response: string) {

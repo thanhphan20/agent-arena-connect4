@@ -81,15 +81,23 @@ export class GameService {
   }
 
   /**
-   * Logs the current board state to the console
+   * Generates a string representation of the current board state
    * @param moveNumber - The current move number
    * @param playerName - The name of the current player
    * @param lastMoveColumn - The column of the last move (optional)
+   * @returns string - Formatted board log
    */
-  logCurrentBoardState(moveNumber: number, playerName: string, lastMoveColumn?: number): void {
-    console.log("\n🎯 === CONNECT 4 BOARD STATE ===");
-    console.log("  1 2 3 4 5 6 7  (Columns)");
-    console.log("  ---------------");
+  getBoardLog(moveNumber: number, playerName: string, lastMoveColumn?: number): string {
+    let output = "";
+    if (lastMoveColumn) {
+      output += `\n📊 Board state after ${playerName}'s move in column ${lastMoveColumn}:\n`;
+    } else {
+      output += `\n📊 Current board state before ${playerName}'s move:\n`;
+    }
+
+    output += "\n🎯 === CONNECT 4 BOARD STATE ===\n";
+    output += "  1 2 3 4 5 6 7  (Columns)\n";
+    output += "  ---------------\n";
     
     this.currentBoardState.board.forEach((row: string[], rowIndex: number) => {
       const rowNumber = rowIndex + 1;
@@ -102,42 +110,130 @@ export class GameService {
         }
       }).join(" ");
       
-      console.log(`${rowNumber} |${rowDisplay}|`);
+      output += `${rowNumber} |${rowDisplay}|\n`;
     });
     
-    console.log("  ---------------");
-    console.log("B = Blank, R = Red (Player A), Y = Yellow (Player B)");
+    output += "  ---------------\n";
+    output += "B = Blank, R = Red (Player A), Y = Yellow (Player B)\n";
     
     const totalPieces = this.currentBoardState.board.flat().filter((cell: string) => cell !== "blank").length;
-    console.log(`📊 Board Summary: ${totalPieces} pieces placed, Move #${moveNumber}`);
+    output += `📊 Board Summary: ${totalPieces} pieces placed, Move #${moveNumber}\n`;
     
     if (lastMoveColumn) {
-      console.log(`🎯 Last move: ${playerName} placed piece in column ${lastMoveColumn}`);
+      output += `🎯 Last move: ${playerName} placed piece in column ${lastMoveColumn}\n`;
     }
     
-    console.log("=== END BOARD STATE ===\n");
+    output += "=== END BOARD STATE ===\n";
+    return output;
   }
 
   /**
-   * Checks if the game is over by examining the page
-   * @param page - The Playwright page object
+   * Logs the current board state to the console
+   * @param moveNumber - The current move number
+   * @param playerName - The name of the current player
+   * @param lastMoveColumn - The column of the last move (optional)
+   */
+  logCurrentBoardState(moveNumber: number, playerName: string, lastMoveColumn?: number): void {
+    console.log(this.getBoardLog(moveNumber, playerName, lastMoveColumn));
+  }
+
+  /**
+   * Checks for a winner in the current board state
+   * @returns string | null - The winning color ('red' or 'yellow') or null if no winner
+   */
+  checkWinner(): string | null {
+    const board = this.currentBoardState.board;
+    const rows = CONNECT4_CONFIG.BOARD_ROWS;
+    const cols = CONNECT4_CONFIG.BOARD_COLUMNS;
+
+    // Horizontal check
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols - 3; c++) {
+        if (board[r][c] !== 'blank' && 
+            board[r][c] === board[r][c+1] && 
+            board[r][c] === board[r][c+2] && 
+            board[r][c] === board[r][c+3]) {
+          return board[r][c];
+        }
+      }
+    }
+
+    // Vertical check
+    for (let r = 0; r < rows - 3; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (board[r][c] !== 'blank' && 
+            board[r][c] === board[r+1][c] && 
+            board[r][c] === board[r+2][c] && 
+            board[r][c] === board[r+3][c]) {
+          return board[r][c];
+        }
+      }
+    }
+
+    // Diagonal check (down-right)
+    for (let r = 0; r < rows - 3; r++) {
+      for (let c = 0; c < cols - 3; c++) {
+        if (board[r][c] !== 'blank' && 
+            board[r][c] === board[r+1][c+1] && 
+            board[r][c] === board[r+2][c+2] && 
+            board[r][c] === board[r+3][c+3]) {
+          return board[r][c];
+        }
+      }
+    }
+
+    // Diagonal check (up-right)
+    for (let r = 3; r < rows; r++) {
+      for (let c = 0; c < cols - 3; c++) {
+        if (board[r][c] !== 'blank' && 
+            board[r][c] === board[r-1][c+1] && 
+            board[r][c] === board[r-2][c+2] && 
+            board[r][c] === board[r-3][c+3]) {
+          return board[r][c];
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Checks if the board is full (draw)
+   * @returns boolean - True if board is full, false otherwise
+   */
+  checkDraw(): boolean {
+    return this.currentBoardState.board[0].every(cell => cell !== 'blank');
+  }
+
+  /**
+   * Checks if the game is over
+   * @param page - Optional Playwright page object (for browser mode)
    * @returns Promise<boolean> - True if game is over, false otherwise
    */
-  async isGameOver(page: { extract: (params: { instruction: string; schema: z.ZodSchema }) => Promise<unknown> }): Promise<boolean> {
-    try {
-      const gameOverCheck = await page.extract({
-        instruction: "Check if the game is over by looking for game over text, winner announcements, or rematch/new game buttons",
-        schema: z.object({
-          isGameOver: z.boolean(),
-          gameOverReason: z.string().optional(),
-        }),
-      }) as { isGameOver: boolean; gameOverReason?: string };
-      
-      return gameOverCheck.isGameOver;
-    } catch (error) {
-      console.log(`❌ Error checking game over: ${error}`);
-      return false;
+  async isGameOver(page?: { extract: (params: { instruction: string; schema: z.ZodSchema }) => Promise<unknown> }): Promise<boolean> {
+    // 1. Check logical win/draw first
+    if (this.checkWinner() || this.checkDraw()) {
+      return true;
     }
+
+    // 2. Check page if provided (browser mode)
+    if (page) {
+      try {
+        const gameOverCheck = await page.extract({
+          instruction: "Check if the game is over by looking for game over text, winner announcements, or rematch/new game buttons",
+          schema: z.object({
+            isGameOver: z.boolean(),
+            gameOverReason: z.string().optional(),
+          }),
+        }) as { isGameOver: boolean; gameOverReason?: string };
+        
+        return gameOverCheck.isGameOver;
+      } catch (error) {
+        console.log(`❌ Error checking game over: ${error}`);
+      }
+    }
+
+    return false;
   }
 
   /**

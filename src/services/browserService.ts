@@ -4,10 +4,12 @@ import { PlayerSession } from "../types/connect4";
 import stagehandConfig from "../stagehand.config";
 
 export class BrowserService {
-  private browserbase: Browserbase;
+  private browserbase: Browserbase | null = null;
 
   constructor() {
-    this.browserbase = new Browserbase({ apiKey: process.env.BROWSERBASE_API_KEY });
+    if (process.env.BROWSERBASE_API_KEY && !process.env.BROWSERBASE_API_KEY.includes('YOUR_')) {
+      this.browserbase = new Browserbase({ apiKey: process.env.BROWSERBASE_API_KEY });
+    }
   }
 
   /**
@@ -82,8 +84,8 @@ export class BrowserService {
    */
   async getLiveViewLink(sessionId: string | undefined): Promise<string | undefined> {
     try {
-      if (!sessionId) {
-        console.log("⚠️ No sessionId provided for live view link");
+      if (!sessionId || !this.browserbase) {
+        console.log("⚠️ No sessionId or Browserbase SDK available for live view link");
         return undefined;
       }
       

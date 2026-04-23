@@ -1,10 +1,11 @@
 export const LLM_MODELS = [
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gpt-5-mini-2025-08-07",
-  "gpt-5-2025-08-07",
-  "gpt-4.1",
-  "claude-sonnet-4-20250514",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+  "qwen/qwen3-32b",
+  "groq/compound",
+  "groq/compound-mini",
 ] as const;
 
 export type ModelName = typeof LLM_MODELS[number];
