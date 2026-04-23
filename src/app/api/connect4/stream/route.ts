@@ -109,6 +109,11 @@ export async function GET(req: NextRequest) {
             
             if (moveSuccess) {
               console.log(`✅ ${playerName} successfully made move in column ${aiMove.column}`);
+              // Compact move log
+              sendSSE('progress', { 
+                message: `🤖 AI ${playerName} chose column ${aiMove.column})` 
+              });
+
               gameService.updateBoardState(aiMove.column, playerColor);
               gameService.addToHistory(moveCount, playerName, aiMove.column);
               

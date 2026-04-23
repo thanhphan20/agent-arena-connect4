@@ -257,25 +257,33 @@ export default function IndexPage() {
       });
 
       eventSource.onerror = (error) => {
-        console.error("📡 SSE connection error:", error);
-        
-        let message = 'Stream connection failed';
-        if (eventSource?.readyState === EventSource.CLOSED) {
-          message = 'Stream connection was closed';
-        } else if (eventSource?.readyState === EventSource.CONNECTING) {
-          message = 'Stream is connecting...';
-        }
+        // If the game is already completed, the stream closing is expected.
+        setGameState(prev => {
+          if (prev.status === 'completed') {
+            if (eventSource) eventSource.close();
+            return prev;
+          }
 
-        setGameState(prev => ({
-          ...prev,
-          status: 'error',
-          progress: 'Connection failed',
-          error: message
-        }));
-        
-        addLog({ type: 'error', message: `Connection error: ${message}` });
-        toast({ title: "Connection Error", description: message, variant: "destructive" });
-        abortController.abort();
+          console.error("📡 SSE connection error:", error);
+          
+          let message = 'Stream connection failed';
+          if (eventSource?.readyState === EventSource.CLOSED) {
+            message = 'Stream connection was closed';
+          } else if (eventSource?.readyState === EventSource.CONNECTING) {
+            message = 'Stream is connecting...';
+          }
+          
+          addLog({ type: 'error', message: `Connection error: ${message}` });
+          toast({ title: "Connection Error", description: message, variant: "destructive" });
+          abortController.abort();
+
+          return {
+            ...prev,
+            status: 'error',
+            progress: 'Connection failed',
+            error: message
+          };
+        });
       };
 
     } catch (e: unknown) {

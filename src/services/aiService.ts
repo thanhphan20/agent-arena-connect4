@@ -103,8 +103,7 @@ CRITICAL: You must respond with ONLY a valid JSON object. Do not include any oth
 Return this exact JSON structure:
 {
   "column": 4,
-  "confidence": 85,
-  "reasoning": "Brief explanation of why this column is the best choice, considering both the current board and move history"
+  "confidence": 85
 }`;
   }
 
