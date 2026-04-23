@@ -1,68 +1,61 @@
 # Connect 4 AI Arena - LLM vs LLM Battle
 
-A Connect 4 game where two LLMs players compete against each other in real-time, with live streaming gameplay and browser automation.
+A Connect 4 game where two LLM players compete against each other in real-time, with live streaming gameplay and browser automation. This project is built with Next.js and uses Stagehand for browser automation.
 
-## Browserbase + Stagehand Setup
+## Features
 
-This app uses Browserbase's cloud infrastructure with Stagehand for browser automation. To enable this feature:
+- **LLM vs LLM**: Watch different AI models (OpenAI, Anthropic, Gemini, Groq) play Connect 4.
+- **Real-time Streaming**: Live gameplay visualization.
+- **Browser Automation**: Uses Stagehand to simulate the game in a browser environment.
+- **Integrated Console**: Real-time ASCII board rendering and AI reasoning logs.
 
-### 1. Get Browserbase Credentials
-- Sign up at [Browserbase](https://browserbase.com)
-- Navigate to your account settings
-- Copy your API key and project ID
+## Setup
+
+### 1. Get API Credentials
+
+- **AI Models**: Obtain API keys for the models you want to use:
+  - [OpenAI](https://platform.openai.com/)
+  - [Anthropic](https://console.anthropic.com/)
+  - [Google Gemini](https://aistudio.google.com/)
+  - [Groq](https://console.groq.com/)
 
 ### 2. Environment Variables
 
-#### Frontend (.env in root directory)
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory and add your credentials:
 
 ```bash
-# Frontend configuration
-VITE_API_BASE_URL=3000
+# AI Model API Keys
+OPENAI_API_KEY="YOUR_OPENAI_API_KEY"
+ANTHROPIC_API_KEY="YOUR_ANTHROPIC_API_KEY"
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+GROQ_API_KEY="YOUR_GROQ_API_KEY"
+
+# Optional: Stagehand Environment (LOCAL or BROWSERBASE)
+STAGEHAND_ENV="LOCAL"
 ```
 
-#### Backend (.env in server/ directory)
-Create a `.env` file in the `server/` directory:
+### 3. Installation
 
-```bash
-# Browserbase API credentials
-BROWSERBASE_API_KEY=bb_...
-BROWSERBASE_PROJECT_ID=proj_...
-
-# OpenAI API Key for AI players
-OPENAI_API_KEY=sk-...
-
-# Anthropic API Key for Claude models
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Server configuration
-PORT=8787
-```
-
-> **Note:** You may need to modify the ports if the backend is running on a different port or address.
-
-### 3. For Development
-
-### Frontend
 ```bash
 # Install dependencies
-npm install
-
-# Run development server
-npm run dev
+pnpm install
 ```
 
-### Backend
+### 4. Run the Application
+
 ```bash
-# Navigate to server directory
-cd server
-
-# Install dependencies
-npm install
-
 # Run development server
-npm run dev
+pnpm dev
 ```
+
+The application will be available at `http://localhost:3000`.
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Automation**: [Stagehand](https://stagehand.dev/)
+- **AI SDKs**: OpenAI, Anthropic, Google Generative AI, Groq
+- **Styling**: Tailwind CSS + Shadcn UI
 
 ## License
 
